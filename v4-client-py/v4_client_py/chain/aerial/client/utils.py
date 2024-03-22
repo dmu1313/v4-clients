@@ -1,6 +1,7 @@
 
 """Helper functions."""
 
+import time
 from datetime import timedelta
 from typing import Any, Callable, List, Optional, Union
 from v4_client_py.clients.constants import BroadcastMode
@@ -63,10 +64,12 @@ def prepare_and_broadcast_basic_transaction(
     tx.sign(sender.signer(), client.network_config.chain_id, account.number)
     tx.complete()
 
+    start_time = time.time()
     result = client.broadcast_tx(tx)
     if broadcast_mode == BroadcastMode.BroadcastTxCommit:
         client.wait_for_query_tx(result.tx_hash)
-
+    elapsed_time = time.time() - start_time
+    print(f"Broadcasted tx in {elapsed_time} seconds")
     return result
 
 

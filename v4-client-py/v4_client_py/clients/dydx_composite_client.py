@@ -2,6 +2,7 @@ from typing import Tuple
 import grpc
 
 from datetime import datetime, timedelta
+import time
 
 from v4_proto.dydxprotocol.clob.tx_pb2 import MsgPlaceOrder
 from v4_client_py.clients.helpers.chain_helpers import (
@@ -40,6 +41,9 @@ class CompositeClient:
     ):
         self.indexer_client = IndexerClient(network.indexer_config, api_timeout, send_options)
         self.validator_client = ValidatorClient(network.validator_config, credentials)
+
+        print(self.indexer_client.config.rest_endpoint)
+        self.markets_response = self.indexer_client.markets.get_perpetual_markets()
 
     def get_current_block(self) -> int:
         response = self.validator_client.get.latest_block()
@@ -142,6 +146,9 @@ class CompositeClient:
 
         :returns: Tx information
         '''
+        print("sending message")
+        
+        start_time = time.time()
         msg = self.place_order_message(
             subaccount=subaccount,
             market=market,
@@ -158,7 +165,13 @@ class CompositeClient:
             reduce_only=reduce_only,
             trigger_price=trigger_price,
         )
-        return self.validator_client.post.send_message(subaccount=subaccount, msg=msg, zeroFee=True)
+        elapsed_time = time.time() - start_time
+        print(f"place_order_message took {elapsed_time} seconds")
+        start_time = time.time()
+        submitted_tx = self.validator_client.post.send_message(subaccount=subaccount, msg=msg, zeroFee=True)
+        elapsed_time = time.time() - start_time
+        print(f"send_message took {elapsed_time} seconds")
+        return submitted_tx
 
     def place_short_term_order(
         self,
@@ -303,7 +316,7 @@ class CompositeClient:
         reduce_only: bool,
         trigger_price: float = None,
     ) -> MsgPlaceOrder:
-        markets_response = self.indexer_client.markets.get_perpetual_markets(market)
+        markets_response = self.markets_response
         market = markets_response.data['markets'][market]
         clob_pair_id = market['clobPairId']
         atomic_resolution = market['atomicResolution']

@@ -14,6 +14,8 @@ from ...chain.aerial.tx_helpers import SubmittedTx
 from ...chain.aerial.client import LedgerClient, NetworkConfig
 from ...chain.aerial.client.utils import prepare_and_broadcast_basic_transaction
 
+import time
+
 class Post:
     def __init__(
         self,
@@ -43,13 +45,14 @@ class Post:
         '''
 
         wallet = subaccount.wallet
-        network = NetworkConfig.fetch_dydx_testnet()
+        network = NetworkConfig.fetch_dydx_mainnet()
         ledger = LedgerClient(network)
         tx = Transaction()
         tx.add_message(msg)
         gas_limit = 0 if zeroFee else None
 
-        return prepare_and_broadcast_basic_transaction(
+        start_time = time.time()
+        submitted_tx = prepare_and_broadcast_basic_transaction(
             client=ledger, 
             tx=tx, 
             sender=wallet, 
@@ -58,6 +61,9 @@ class Post:
             broadcast_mode=broadcast_mode if (broadcast_mode != None) else self.default_broadcast_mode(msg),
             fee=0 if zeroFee else None,
             )
+        end_time = time.time()
+        print(f"prepare_and_broadcast_basic_transaction took {end_time - start_time} seconds")
+        return submitted_tx
     
     def place_order(
         self,

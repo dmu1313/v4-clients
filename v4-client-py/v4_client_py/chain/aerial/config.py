@@ -87,6 +87,21 @@ class NetworkConfig:
         )
 
     @classmethod
+    def fetch_dydx_mainnet(cls) -> "NetworkConfig":
+        """Dydx mainnet.
+
+        :return: Network configuration
+        """
+        return NetworkConfig(
+            chain_id="dydx-mainnet-1",
+            url="grpc+https://dydx-ops-grpc.kingnodes.com:443",
+            fee_minimum_gas_price=4630550000000000,
+            fee_denomination="dydx",
+            staking_denomination="dydx",
+            faucet_url=None,
+        )
+
+    @classmethod
     def fetchai_alpha_testnet(cls):
         """Get the fetchai alpha testnet.
 
