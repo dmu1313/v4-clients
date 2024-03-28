@@ -1,5 +1,6 @@
 // Types.
 export * from './types';
+export { OrderFlags } from './clients/types';
 
 // Utility functions.
 export * as utils from './lib/utils';
@@ -13,7 +14,8 @@ export { NobleClient } from './clients/noble-client';
 export { IndexerClient } from './clients/indexer-client';
 export { ValidatorClient } from './clients/validator-client';
 export { FaucetClient } from './clients/faucet-client';
-export { SocketClient } from './clients/socket-client';
+export { SocketClient, CandlesResolution } from './clients/socket-client';
 export { NetworkOptimizer } from './network_optimizer';
 export { encodeJson } from './lib/helpers';
 export { SubaccountInfo } from './clients/subaccount';
+export { calculateOrderFlags } from './clients/helpers/chain-helpers';

@@ -182,7 +182,7 @@ export const MAX_MEMO_CHARACTERS: number = 256;
 
 export const SHORT_BLOCK_WINDOW: number = 20;
 
-export const SHORT_BLOCK_FORWARD: number = 3;
+export const SHORT_BLOCK_FORWARD: number = 19;
 
 // Querying
 export const PAGE_REQUEST: PageRequest = {
