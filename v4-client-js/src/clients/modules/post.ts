@@ -1,3 +1,5 @@
+import * as perf_hooks from 'perf_hooks';
+
 import { Coin, Secp256k1Pubkey } from '@cosmjs/amino';
 import { Uint53 } from '@cosmjs/math';
 import { EncodeObject, Registry } from '@cosmjs/proto-signing';
@@ -159,7 +161,8 @@ export class Post {
     const msgsAndAccount = await Promise.all([msgsPromise, accountPromise]);
     const msgs = msgsAndAccount[0];
 
-    return this.signAndSendTransaction(
+    const start = perf_hooks.performance.now();
+    const result = this.signAndSendTransaction(
       wallet,
       msgsAndAccount[1],
       msgs,
@@ -168,6 +171,18 @@ export class Post {
       memo ?? this.defaultClientMemo,
       broadcastMode ?? this.defaultBroadcastMode(msgs),
     );
+    result
+      .then((res) => {})
+      .catch((err) => {
+        throw err;
+      })
+      .finally(() => {
+        const end = perf_hooks.performance.now();
+        console.log(
+          `Actually signing and sending transaction takes: ${end - start}ms`,
+        );
+      });
+    return result;
   }
 
   /**
@@ -461,6 +476,7 @@ export class Post {
     goodTilBlock?: number,
     goodTilBlockTime?: number,
     broadcastMode?: BroadcastMode,
+    account?: Account,
   ): Promise<BroadcastTxAsyncResponse | BroadcastTxSyncResponse | IndexedTx> {
     const msg = await this.cancelOrderMsg(
       subaccount.address,
@@ -478,7 +494,7 @@ export class Post {
       undefined,
       undefined,
       broadcastMode,
-    );
+      account ? () => Promise.resolve(account) : undefined);
   }
 
   async cancelOrderMsg(

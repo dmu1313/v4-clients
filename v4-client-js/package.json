@@ -5,7 +5,7 @@
   "main": "build/src/index.js",
   "scripts": {
     "build": "rm -rf build/ && npm run compile",
-    "compile": "tsc",
+    "compile": "npx tsc",
     "compile:watch": "npm run compile -- --watch",
     "coverage": "npm run test -- --coverage",
     "fix": "npm run lint -- --fix",
