@@ -10,6 +10,7 @@
   ],
   "compilerOptions": {
     "outDir": "build",
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "lib": ["es2015"],
   }
 }

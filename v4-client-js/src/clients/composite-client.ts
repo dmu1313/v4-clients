@@ -212,13 +212,13 @@ export class CompositeClient {
   private async calculateGoodTilBlock(
     orderFlags: OrderFlags,
     currentHeight?: number,
-    goodTilBlock?: number,
+    goodTilBlockFromNow?: number,
   ): Promise<number> {
     if (orderFlags === OrderFlags.SHORT_TERM) {
-      if (goodTilBlock !== undefined && goodTilBlock !== 0 && goodTilBlock !== null) {
-        return Promise.resolve(goodTilBlock);
+      const height = currentHeight ?? (await this.validatorClient.get.latestBlockHeight());
+      if (goodTilBlockFromNow !== undefined && goodTilBlockFromNow !== 0) {
+        return height + goodTilBlockFromNow;
       } else {
-        const height = currentHeight ?? (await this.validatorClient.get.latestBlockHeight());
         return height + SHORT_BLOCK_FORWARD;
       }
     } else {
@@ -379,8 +379,9 @@ export class CompositeClient {
     triggerPrice?: number,
     marketInfo?: MarketInfo,
     currentHeight?: number,
-    goodTilBlock?: number,
+    goodTilBlockFromNow?: number,
     memo?: string,
+    account?: Account,
   ): Promise<BroadcastTxAsyncResponse | BroadcastTxSyncResponse | IndexedTx> {
     const msgs: Promise<EncodeObject[]> = new Promise((resolve) => {
       const msg = this.placeOrderMessage(
@@ -393,13 +394,13 @@ export class CompositeClient {
         clientId,
         timeInForce,
         goodTilTimeInSeconds,
+        goodTilBlockFromNow,
         execution,
         postOnly,
         reduceOnly,
         triggerPrice,
         marketInfo,
         currentHeight,
-        goodTilBlock,
       );
       msg
         .then((it) => resolve([it]))
@@ -407,11 +408,18 @@ export class CompositeClient {
           throw err;
         });
     });
-    const orderFlags = calculateOrderFlags(type, timeInForce);
-    const account: Promise<Account> = this.validatorClient.post.account(
-      subaccount.address,
-      orderFlags,
-    );
+
+    let accountPromise: Promise<Account>;
+    if (account) {
+      accountPromise = Promise.resolve(account);
+    } else {
+      const orderFlags = calculateOrderFlags(type, goodTilBlockFromNow !== undefined, timeInForce);
+      accountPromise = this.validatorClient.post.account(
+        subaccount.address,
+        orderFlags,
+      );
+    }
+
     return this.send(
       subaccount.wallet,
       () => msgs,
@@ -419,7 +427,7 @@ export class CompositeClient {
       undefined,
       memo,
       undefined,
-      () => account,
+      () => accountPromise,
     );
   }
 
@@ -459,18 +467,18 @@ export class CompositeClient {
     clientId: number,
     timeInForce?: OrderTimeInForce,
     goodTilTimeInSeconds?: number,
+    goodTilBlockFromNow ?: number,
     execution?: OrderExecution,
     postOnly?: boolean,
     reduceOnly?: boolean,
     triggerPrice?: number,
     marketInfo?: MarketInfo,
     currentHeight?: number,
-    goodTilBlock?: number,
   ): Promise<EncodeObject> {
-    const orderFlags = calculateOrderFlags(type, timeInForce);
+    const orderFlags = calculateOrderFlags(type, goodTilBlockFromNow !== undefined, timeInForce);
 
     const result = await Promise.all([
-      this.calculateGoodTilBlock(orderFlags, currentHeight, goodTilBlock),
+      this.calculateGoodTilBlock(orderFlags, currentHeight, goodTilBlockFromNow),
       this.retrieveMarketInfo(marketId, marketInfo),
     ]);
     const desiredGoodTilBlock = result[0];
@@ -664,13 +672,23 @@ export class CompositeClient {
     subaccount: SubaccountInfo,
     clientId: number,
     orderFlags: OrderFlags,
-    marketId: string,
+    marketId?: string,
     goodTilBlock?: number,
     goodTilTimeInSeconds?: number,
+    marketInfo?: MarketInfo,
+    account?: Account,
   ): Promise<BroadcastTxAsyncResponse | BroadcastTxSyncResponse | IndexedTx> {
-    const marketsResponse = await this.indexerClient.markets.getPerpetualMarkets(marketId);
-    const market = marketsResponse.markets[marketId];
-    const clobPairId = market.clobPairId;
+    let clobPairId;
+    if (marketInfo) {
+      clobPairId = marketInfo.clobPairId;
+    } else {
+      if (marketId == null) {
+        throw new Error('marketId must be set if marketInfo is not provided');
+      }
+      const marketsResponse = await this.indexerClient.markets.getPerpetualMarkets(marketId);
+      const market = marketsResponse.markets[marketId];
+      clobPairId = market.clobPairId;
+    }
 
     if (!verifyOrderFlags(orderFlags)) {
       throw new Error(`Invalid order flags: ${orderFlags}`);
@@ -706,6 +724,8 @@ export class CompositeClient {
       clobPairId,
       goodTilBlock,
       goodTilBlockTime,
+      undefined,
+      account,
     );
   }
 
@@ -1019,6 +1039,7 @@ export class CompositeClient {
         clientId,
         timeInForce,
         goodTilTimeInSeconds,
+        undefined,
         execution,
         postOnly,
         reduceOnly,
