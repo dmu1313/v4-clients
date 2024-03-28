@@ -1,5 +1,6 @@
 // Types.
 export * from './types';
+export { OrderFlags } from './clients/types';
 
 // Utility functions.
 export * as utils from './lib/utils';
@@ -17,3 +18,4 @@ export { SocketClient } from './clients/socket-client';
 export { NetworkOptimizer } from './network_optimizer';
 export { encodeJson } from './lib/helpers';
 export { SubaccountInfo } from './clients/subaccount';
+export { calculateOrderFlags } from './clients/helpers/chain-helpers';

@@ -127,7 +127,11 @@ export function calculateTimeInForce(
   }
 }
 
-export function calculateOrderFlags(type: OrderType, timeInForce?: OrderTimeInForce): OrderFlags {
+export function calculateOrderFlags(
+  type: OrderType,
+  isGoodTilBlockSpecified: boolean,
+  timeInForce?: OrderTimeInForce,
+): OrderFlags {
   switch (type) {
     case OrderType.MARKET:
       return OrderFlags.SHORT_TERM;
@@ -136,6 +140,11 @@ export function calculateOrderFlags(type: OrderType, timeInForce?: OrderTimeInFo
       if (timeInForce === undefined) {
         throw new Error('timeInForce must be set if orderType is LIMIT');
       }
+
+      if (isGoodTilBlockSpecified) {
+        return OrderFlags.SHORT_TERM;
+      }
+
       if (timeInForce === OrderTimeInForce.GTT) {
         return OrderFlags.LONG_TERM;
       } else {
