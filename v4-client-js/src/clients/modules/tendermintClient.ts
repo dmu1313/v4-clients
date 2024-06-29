@@ -1,6 +1,13 @@
-import { toHex } from '@cosmjs/encoding';
+import { toHex, fromHex, fromBase64 } from '@cosmjs/encoding';
 import { Uint53 } from '@cosmjs/math';
-import { Block, TimeoutError, IndexedTx } from '@cosmjs/stargate';
+import { decodeTxRaw, Registry } from "@cosmjs/proto-signing"
+import {
+  Block,
+  TimeoutError,
+  IndexedTx,
+  defaultRegistryTypes as defaultStargateTypes,
+  SigningStargateClient,
+} from '@cosmjs/stargate'; 
 import { Method, Tendermint37Client, toRfc3339WithNanoseconds } from '@cosmjs/tendermint-rpc';
 import {
   Attribute,
@@ -12,9 +19,12 @@ import {
 } from '@cosmjs/tendermint-rpc/build/tendermint37';
 import { sleep } from '@cosmjs/utils';
 
+
 import { BroadcastErrorObject } from '../lib/errors';
 import { BroadcastMode, BroadcastOptions } from '../types';
+import { decode } from 'bech32';
 
+// import { MsgPlaceOrder } from './proto-includes';
 export class TendermintClient {
   readonly baseClient: Tendermint37Client;
   broadcastOptions: BroadcastOptions;
@@ -31,6 +41,25 @@ export class TendermintClient {
    */
   async getBlock(height?: number): Promise<Block> {
     const response: BlockResponse = await this.baseClient.block(height);
+    try {
+      const tx = response.block.txs[1];
+      const txBuffer = Buffer.from(tx);
+      const base64Decoded = txBuffer.toString('base64');
+      // const decodedBytes = Uint8Array.from(base64Decoded, c => c.charCodeAt(0));
+
+      // const hexString = Buffer.from(tx).toString('base64');
+      const decoded = decodeTxRaw(fromBase64(base64Decoded));
+      const registry = new Registry(defaultStargateTypes /* this contains /ibc.applications.transfer.v1.MsgTransfer */);
+      // registry.register("/my.custom.MsgXxx", MsgXxx);
+
+      for (const message of decoded.body.messages) {
+        const decodedMsg = registry.decode(message);
+        console.log("Decoded message:", decodedMsg);
+      }
+    } catch (error) { 
+      console.log("ERROR!");
+    }
+
     return {
       id: toHex(response.blockId.hash).toUpperCase(),
       header: {
